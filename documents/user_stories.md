@@ -13,15 +13,25 @@
 - Buyer can search for products by name, description, or category.
 
 ### Cart Management
+- Buyer has no cart initially - cart is created only when first adding an item.
 - Buyer can add digital products to their shopping cart for later purchase.
 - Buyer can remove products from their cart individually or clear the entire cart.
+- Buyer's cart shell is preserved even when emptied, maintaining shopping state.
+- Buyer can continue shopping seamlessly after emptying cart without losing cart state.
 - Buyer can view their cart contents with product details, prices, and total cost.
 - Buyer can update product quantities in their cart (if applicable for bundled products).
-- Buyer can save products to cart and continue shopping without losing cart items.
 - Buyer can view cart summary including subtotal, taxes, and final total.
 - Buyer can buy all products in their cart in a single transaction.
 - Buyer can selectively purchase specific products from their cart while keeping others.
 - Buyer can save their cart for later and return to complete the purchase.
+- Buyer's cart persists across sessions until explicitly deleted.
+
+### Cart Lifecycle States
+- **NO CART**: Buyer starts with no cart - clean and efficient.
+- **CART CREATED**: Cart is created only when buyer first adds an item to cart.
+- **CART EMPTIED**: When buyer clears cart, items are removed but cart shell is preserved.
+- **CART REFILLED**: Buyer can add new items to existing cart shell without recreation.
+- **CART PERSISTENT**: Cart remains available across browser sessions and app restarts.
 
 ### Address Management & Purchase for Others
 - Buyer can manage multiple email addresses in their address management system.
