@@ -96,38 +96,7 @@ Log out the current user (token invalidation handled client-side).
 }
 ```
 
-#### 4. Update User Profile
-**PUT** `/auth/user/update`
 
-Update user profile information.
-
-**Headers:** `Authorization: Bearer <JWT_TOKEN>`
-
-**Request Body:**
-```json
-{
-  "UserName": "Updated Name",
-  "UserEmail": "updated@example.com"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "User updated successfully",
-  "data": {
-    "user": {
-      "_id": "user_id",
-      "UserName": "Updated Name",
-      "UserEmail": "updated@example.com",
-      "UserRole": "Buyer",
-      "createdAt": "2024-01-15T10:00:00.000Z",
-      "updatedAt": "2024-01-15T12:00:00.000Z"
-    }
-  }
-}
-```
 
 ### 📧 OTP Verification Endpoints (Purchase Process)
 
@@ -647,26 +616,63 @@ Add a review for a product.
 
 ### 🛒 Cart Management Endpoints
 
+#### Cart Lifecycle Overview
+
+The cart system follows a smart lifecycle approach:
+- **NO CART**: User has no cart until first "Add to Cart" action
+- **CART CREATED**: Cart is created only when user first adds an item
+- **CART EMPTIED**: Items are removed but cart shell is preserved
+- **CART REFILLED**: New items are added to existing cart shell
+
 #### 1. Add Product to Cart
 **POST** `/cart/add`
 
-Add a product to the user's shopping cart.
+Add a product to the user's shopping cart. Creates cart if it doesn't exist.
 
 **Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
 **Request Body:**
 ```json
 {
-  "productId": "product_mongodb_id",
+  "productId": "product_mongodb_id"
 }
 ```
 
-**Response (200 OK):**
+**Response (200 OK) - First Item (Cart Created):**
+```json
+{
+  "success": true,
+  "message": "Cart created and product added successfully",
+  "data": {
+    "cartCreated": true,
+    "cartItem": {
+      "_id": "cart_item_id",
+      "userId": "user_id",
+      "productId": {
+        "_id": "product_id",
+        "prodName": "Digital Product",
+        "price": 29.99,
+        "thumbnail": "s3_thumbnail_url"
+      },
+      "addedAt": "2024-01-15T10:00:00.000Z"
+    },
+    "cartSummary": {
+      "totalItems": 1,
+      "subtotal": 29.99,
+      "tax": 2.99,
+      "total": 32.98
+    }
+  }
+}
+```
+
+**Response (200 OK) - Additional Items:**
 ```json
 {
   "success": true,
   "message": "Product added to cart successfully",
   "data": {
+    "cartCreated": false,
     "cartItem": {
       "_id": "cart_item_id",
       "userId": "user_id",
@@ -759,7 +765,7 @@ Remove a specific item from the shopping cart.
 #### 4. Clear Entire Cart
 **DELETE** `/cart/clear`
 
-Remove all items from the shopping cart.
+Remove all items from the shopping cart while preserving the cart shell.
 
 **Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
@@ -767,8 +773,9 @@ Remove all items from the shopping cart.
 ```json
 {
   "success": true,
-  "message": "Cart cleared successfully",
+  "message": "Cart cleared successfully - cart shell preserved for future use",
   "data": {
+    "cartPreserved": true,
     "cartSummary": {
       "totalItems": 0,
       "subtotal": 0,
@@ -779,10 +786,73 @@ Remove all items from the shopping cart.
 }
 ```
 
+**Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "No cart found for this user"
+}
+```
+
 #### 5. Get Cart Summary
 **GET** `/cart/summary`
 
 Get a quick summary of the cart contents without full product details.
+
+**Headers:** `Authorization: Bearer <JWT_TOKEN>`
+
+**Response (200 OK) - Cart with Items:**
+```json
+{
+  "success": true,
+  "data": {
+    "cartExists": true,
+    "hasItems": true,
+    "totalItems": 3,
+    "subtotal": 89.97,
+    "tax": 8.99,
+    "total": 98.96,
+    "itemCount": 3
+  }
+}
+```
+
+**Response (200 OK) - Empty Cart (Shell Preserved):**
+```json
+{
+  "success": true,
+  "data": {
+    "cartExists": true,
+    "hasItems": false,
+    "totalItems": 0,
+    "subtotal": 0,
+    "tax": 0,
+    "total": 0,
+    "itemCount": 0
+  }
+}
+```
+
+**Response (404 Not Found) - No Cart:**
+```json
+{
+  "success": true,
+  "data": {
+    "cartExists": false,
+    "hasItems": false,
+    "totalItems": 0,
+    "subtotal": 0,
+    "tax": 0,
+    "total": 0,
+    "itemCount": 0
+  }
+}
+```
+
+#### 6. Get Cart Status
+**GET** `/cart/status`
+
+Get the current cart status and lifecycle information.
 
 **Headers:** `Authorization: Bearer <JWT_TOKEN>`
 
@@ -791,12 +861,13 @@ Get a quick summary of the cart contents without full product details.
 {
   "success": true,
   "data": {
-    "totalItems": 3,
-    "subtotal": 89.97,
-    "tax": 8.99,
-    "total": 98.96,
+    "cartStatus": "active", // "active", "empty", "none"
+    "cartExists": true,
+    "hasItems": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "lastModified": "2024-01-15T11:30:00.000Z",
     "itemCount": 3,
-    "hasItems": true
+    "totalValue": 98.96
   }
 }
 ```
